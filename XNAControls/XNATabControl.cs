@@ -58,6 +58,8 @@ public class XNATabControl : XNAControl
 
     public EnhancedSoundEffect ClickSound { get; set; }
 
+    public bool IsVertical = false;
+
     public override void Initialize()
     {
         base.Initialize();
@@ -109,7 +111,21 @@ public class XNATabControl : XNAControl
         Height = defaultTexture.Height;
     }
 
-    protected override void ParseControlINIAttribute(IniFile iniFile, string key, string value)
+    public void AddVerticalTab(string text, Texture2D defaultTexture, Texture2D pressedTexture)
+    {
+        Tab tab = new Tab(text, defaultTexture, pressedTexture, true);
+        Tabs.Add(tab);
+
+        Vector2 textSize = Renderer.GetTextDimensions(text, FontIndex);
+        tab.TextXPosition = (defaultTexture.Width - (int)textSize.X) / 2;
+        tab.TextYPosition = (defaultTexture.Height - (int)textSize.Y) / 2;
+
+        Width = defaultTexture.Width;
+        Height += defaultTexture.Height;
+        IsVertical = true;
+    }
+
+    public override void ParseAttributeFromINI(IniFile iniFile, string key, string value)
     {
         switch (key)
         {
@@ -140,12 +156,14 @@ public class XNATabControl : XNAControl
         Point p = GetCursorPoint();
 
         int w = 0;
+        int h = 0;
         int i = 0;
         foreach (Tab tab in Tabs)
         {
             w += tab.DefaultTexture.Width;
+            h += tab.DefaultTexture.Height;
 
-            if (p.X < w)
+            if ((!IsVertical && (p.X < w)) || (IsVertical && (p.Y < h)))
             {
                 if (tab.Selectable)
                 {
@@ -164,6 +182,7 @@ public class XNATabControl : XNAControl
     public override void Draw(GameTime gameTime)
     {
         int x = 0;
+        int y = 0;
 
         for (int i = 0; i < Tabs.Count; i++)
         {
@@ -171,13 +190,16 @@ public class XNATabControl : XNAControl
 
             Texture2D texture = i == SelectedTab ? tab.PressedTexture : tab.DefaultTexture;
 
-            DrawTexture(texture, new Point(x, 0), RemapColor);
+            DrawTexture(texture, new Point(x, y), RemapColor);
 
             DrawStringWithShadow(tab.Text, FontIndex,
-                new Vector2(x + tab.TextXPosition, tab.TextYPosition),
+                new Vector2(x + tab.TextXPosition, y + tab.TextYPosition),
                 tab.Selectable && Enabled ? TextColor : TextColorDisabled);
 
-            x += tab.DefaultTexture.Width;
+            if (!IsVertical)
+                x += tab.DefaultTexture.Width;
+            else
+                y += tab.DefaultTexture.Height;
         }
     }
 }
